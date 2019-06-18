@@ -1,42 +1,26 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const mongoose = require('mongoose')
+const cookieParser = require('cookie-parser')
+
+const config = require('./config/properties')
+var database = require('./config/database');
 
 const app = express()
+database()
 
-mongoose.Promise = global.Promise
-mongoose.connect('mongodb://localhost:27017/auth')
+const { auth } = require('./middleware/auth')
 
-const { User } = require('./models/user')
 app.use(bodyParser.json())
+app.use(cookieParser())
 
-app.post('/api/user', (req, res) => {
-  const user = new User({
-    email: req.body.email,
-    password: req.body.password
-  })
+var usersRouter = require('./routes/user')
+app.use('/api/user', usersRouter)
 
-  user.save((err, doc) => {
-    if (err) res.status(400).send(err)
-    res.status(200).send(doc)
-  })
-
+// valid user only
+app.get('/user/profile', auth, (req, res) => {  
+  res.status(200).send(req.token)
 })
 
-app.post('/api/user/login', (req, res) => {
-  User.findOne({'email': req.body.email}, (err, user) => {
-    if (!user) res.json({message: 'Auth failed, user not found'})
-
-    user.comparePassword(req.body.password, (err, isMatch) => {
-      if (err) throw err
-      if (!isMatch) return res.status(400).json({message: 'Wrong password'})
-      res.status(200).send(isMatch)
-    })
-  })
-})
-
-const port = process.env.PORT || 3000
-
-app.listen(port, () => {
-  console.log(`Started on port ${port}`)
+app.listen(config.PORT, () => {
+  console.log(`Started on port ${config.PORT}`)
 })
