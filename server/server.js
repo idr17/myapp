@@ -3,7 +3,7 @@ const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 
 const config = require('./config/properties')
-var database = require('./config/database');
+const database = require('./config/database');
 
 const app = express()
 database()
@@ -13,8 +13,10 @@ const { auth } = require('./middleware/auth')
 app.use(bodyParser.json())
 app.use(cookieParser())
 
-var usersRouter = require('./routes/user')
+const usersRouter = require('./routes/user')
+const transactionRouter = require('./routes/transaction')
 app.use('/api/user', usersRouter)
+app.use('/api/transaction', transactionRouter)
 
 // valid user only
 app.get('/user/profile', auth, (req, res) => {  

@@ -17,6 +17,10 @@ const userSchema = mongoose.Schema({
   },
   token: {
     type: String
+  },
+  balance: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -44,18 +48,21 @@ userSchema.methods.comparePassword = function(candidatePassword, cb) {
 
 userSchema.methods.generateToken = function(cb) {
   var user = this
-  var token = jwt.sign(user._id.toHexString(), 'supersecret')
+  var token = jwt.sign(user._id.toHexString(), config.JWT_SUPERSECRET)
 
   user.token = token
   user.save(function(err, user) {
-    if (err) return cb(err)
+    if (err) {
+      console.log('err save ', err)
+      return cb(err)
+    }
     cb(null, user)
   })
 }
 
 userSchema.statics.findByToken = function(token, cb) {
   const user = this
-  jwt.verify(token, 'supersecret', function(err, decode) {
+  jwt.verify(token, config.JWT_SUPERSECRET, function(err, decode) {
     user.findOne({"_id": decode, "token": token}, function(err, user) {
       if (err) return cb(err)
       cb(null, user)
