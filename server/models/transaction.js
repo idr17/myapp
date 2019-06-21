@@ -10,8 +10,8 @@ const transactionSchema = mongoose.Schema({
     required: true,
     default: 0
   },
-  fromAccId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
-  toAccId: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
+  fromAccId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  toAccId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, required: true, default: Date.now }
 })
 

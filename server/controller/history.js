@@ -1,16 +1,16 @@
-const { Transaction } = require('../models/transaction')
+const { History } = require('../models/history')
 
 function Controller() {
   function find(query, cb) {
-    Transaction.find(query, function(err, trans) {
+    History.find(query, function(err, histories) {
       if (err) return cb(err)
-      cb(null, trans)
+      cb(null, histories)
     })
   }
   function findById(query, cb) {
-    Transaction.findOne(query, function(err, trans) {
+    History.findOne(query, function(err, historie) {
       if (err) return cb(err)
-      cb(null, trans)
+      cb(null, historie)
     })
   }
   function save(trans, cb) {
@@ -20,13 +20,13 @@ function Controller() {
     })
   }
   function remove(trans, cb) {
-    Transaction.remove(trans, function(err, deleted) {
+    History.remove(trans, function(err, deleted) {
       if (err) return cb(err)
       cb(null, deleted)
     })
   }
-  function update(transId, updatedData, cb) {
-    Transaction.update(transId, {$set: updatedData}, function(err, updated) {
+  function update(historyId, updatedData, cb) {
+    History.update(historyId, {$set: updatedData}, function(err, updated) {
       if (err) return cb(err)
       cb(null, updated)
     })

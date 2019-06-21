@@ -3,31 +3,31 @@ const bcrypt = require('bcrypt')
 const config = require('../config/properties')
 
 function Controller() {
-  function findUsers(query, cb) {
+  function find(query, cb) {
     User.find(query, function(err, users) {
       if (err) return cb(err)
       cb(null, users)
     })
   }
-  function findUserById(query, cb) {
+  function findById(query, cb) {
     User.findOne(query, function(err, user) {
       if (err) return cb(err)
       cb(null, user)
     })
   }
-  function saveUser(user, cb) {
+  function save(user, cb) {
     user.save(function(err, saved) {
       if (err) return cb(err)
       cb(null, saved)
     })
   }
-  function removeUser(user, cb) {
+  function remove(user, cb) {
     User.remove(user, function(err, deleted) {
       if (err) return cb(err)
       cb(null, deleted)
     })
   }
-  function updateUser(userId, updatedData, cb) {
+  function update(userId, updatedData, cb) {
 
     let hashPassword = updatedData.password
 
@@ -61,11 +61,11 @@ function Controller() {
     })
   }
   return {
-    findUsers: findUsers,
-    findUserById: findUserById,
-    saveUser: saveUser,
-    removeUser: removeUser,
-    updateUser: updateUser,
+    find: find,
+    findById: findById,
+    save: save,
+    remove: remove,
+    update: update,
     doLogin: doLogin
   }
 }

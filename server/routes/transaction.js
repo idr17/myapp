@@ -1,20 +1,22 @@
 const express = require('express')
 const router = express.Router()
 const { Transaction } = require('../models/transaction')
+const { History } = require('../models/history')
 const { auth } = require('../middleware/auth')
 const transactionController = require('../controller/transaction')
 const userController = require('../controller/user')
+const historyController = require('../controller/history')
 const config = require('../config/properties')
 
 router.get('/', (req, res) => {
-  transactionController.findTransaction({}, function(err, trans) {
+  transactionController.find({}, function(err, trans) {
     if (err) return res.status(400).send(err)
     res.status(200).send(trans)
   })
 })
 
 router.get('/:id', (req, res) => {
-  transactionController.findTransactionById({_id: req.params.id}, function(err, trans) {
+  transactionController.findById({_id: req.params.id}, function(err, trans) {
     if (err) return res.status(400).send(err)
     res.status(200).send(trans)
   })
@@ -22,10 +24,10 @@ router.get('/:id', (req, res) => {
 
 router.post('/', auth, (req, res) => {
 
-  userController.findUserById({_id: req.body.to}, function(err, user) {
+  userController.findById({_id: req.body.to}, function(err, user) {
     if (err) return res.status(400).send(err)
 
-    userController.findUserById({_id: req.body.from}, function(err, userFrom) {
+    userController.findById({_id: req.body.from}, function(err, userFrom) {
       if (err) return res.status(400).send(err)
       
       let theBalance = 0
@@ -44,7 +46,7 @@ router.post('/', auth, (req, res) => {
           toAccId: req.body.to
         })
     
-        transactionController.saveTransaction(transaction, (err, saved) => {
+        transactionController.save(transaction, (err, saved) => {
     
           if (err) return res.status(400).send(err)
       
@@ -57,21 +59,58 @@ router.post('/', auth, (req, res) => {
     
           if (saved.type === config.TRANSACTION_TYPE.DB) {
             updatedData.balance = updatedData.balance - saved.amount
-            userController.updateUser({_id: user._id}, updatedData, (err, updated) => {
+            userController.update({_id: user._id}, updatedData, (err, updated) => {
               if (err) return res.status(400).send(err)
-              res.status(200).send('successfully updated')
+
+              // inject here, add to history
+              let history = new History({
+                transactionId: saved._id,
+                accId: req.body.to,
+                balance: updatedData.balance
+              })
+            
+              historyController.save(history, (err, saved) => {
+                if (err) return res.status(400).send(err)
+                res.status(200).send('update success') 
+              })
+
             })
           } else if (saved.type === config.TRANSACTION_TYPE.CR) {
             updatedData.balance = updatedData.balance + saved.amount
-            userController.updateUser({_id: user._id}, updatedData, (err, updated) => {
+            userController.update({_id: user._id}, updatedData, (err, updated) => {
               if (err) return res.status(400).send(err)
-              res.status(200).send('successfully updated')
+
+                // inject here, add to history
+                let history = new History({
+                  transactionId: saved._id,
+                  accId: req.body.to,
+                  balance: updatedData.balance
+                })
+              
+                historyController.save(history, (err, saved) => {
+                  if (err) return res.status(400).send(err)
+                  res.status(200).send('update success')
+                })
+
             })
           } else if (saved.type === config.TRANSACTION_TYPE.TRANSFER) {
     
             updatedData.balance = updatedData.balance + saved.amount
-            userController.updateUser({_id: req.body.to}, updatedData, (err, updated) => {
+            userController.update({_id: req.body.to}, updatedData, (err, updated) => {
             if (err) return res.status(400).send(err)
+
+              // inject here, add to history
+              let historyCR = new History({
+                transactionId: saved._id,
+                accId: req.body.to,
+                balance: updatedData.balance
+              })
+            
+              historyController.save(historyCR, (err, saved) => {
+                if (err) return res.status(400).send(err)
+              })
+
+              // menambahkan ke transaction, history
               
               let transferFromUser = {
                 email: userFrom.email,
@@ -79,9 +118,20 @@ router.post('/', auth, (req, res) => {
                 balance: userFrom.balance - saved.amount
               }
     
-              userController.updateUser({_id: req.body.from}, transferFromUser, (err, updated) => {
+              userController.update({_id: req.body.from}, transferFromUser, (err, updated) => {
                 if (err) return res.status(400).send(err)
-                res.status(200).send('successfully updated')              
+
+                let historyDB = new History({
+                  transactionId: saved._id,
+                  accId: req.body.from,
+                  balance: transferFromUser.balance
+                })
+              
+                historyController.save(historyDB, (err, saved) => {
+                  if (err) return res.status(400).send(err)
+                  res.status(200).send('update success')              
+                })
+
               })
             })
     
@@ -89,21 +139,19 @@ router.post('/', auth, (req, res) => {
     
         })
       } else {
-        return res.status(400).json({"message": "lack of balance"}) 
+        return res.status(400).json({"message": "Lack of balance"}) 
       }
     })
   })
 })
 
-// router.delete('/:id', auth, (req, res) => {
 router.delete('/:id', auth, (req, res) => {
-  transactionController.removeTransaction({_id: req.params.id}, (err, deleted) => {
+  transactionController.remove({_id: req.params.id}, (err, deleted) => {
     if (err) return res.status(400).send(err)
-    res.status(200).send(`${req.params.id} successfully deleted`)
+    res.status(200).send('delete success')
   })
 })
 
-// router.put('/:id', auth, (req, res) => {
 router.put('/:id', auth, (req, res) => {
   let updatedData = {
     type: req.body.type,
@@ -112,9 +160,9 @@ router.put('/:id', auth, (req, res) => {
     toAccId: req.body.to
   }
 
-  transactionController.updateTransaction({_id: req.params.id}, updatedData, (err, updated) => {
+  transactionController.update({_id: req.params.id}, updatedData, (err, updated) => {
     if (err) return res.status(400).send(err)
-    res.status(200).send(`${req.params.id} successfully updated`)
+    res.status(200).send('update success')
   })
 })
 
