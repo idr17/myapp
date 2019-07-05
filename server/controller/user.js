@@ -2,14 +2,28 @@ const { User } = require('../models/user')
 const bcrypt = require('bcrypt')
 const config = require('../config/properties')
 
+const defaultProject = { email: 1, balance: 1 , createdAt: 1}
+
 function Controller() {
   function find(query, cb) {
-    User.find(query, function(err, users) {
+    User.find(query, defaultProject, function(err, users) {
       if (err) return cb(err)
       cb(null, users)
     })
   }
   function findById(query, cb) {
+    User.findOne(query, defaultProject, function(err, user) {
+      if (err) return cb(err)
+      cb(null, user)
+    })
+  }
+  function findAccount(query, cb) {
+    User.find(query, function(err, users) {
+      if (err) return cb(err)
+      cb(null, users)
+    })
+  }
+  function findAccountById(query, cb) {
     User.findOne(query, function(err, user) {
       if (err) return cb(err)
       cb(null, user)
@@ -60,13 +74,23 @@ function Controller() {
       })
     })
   }
+  function check(cookies, cb) {
+    User.findByToken(cookies.token, (err, user) => {
+      if (err) throw err
+      if (!user) return res.status(401).send('no access')
+      cb(null, user)
+    })
+  }
   return {
     find: find,
     findById: findById,
     save: save,
     remove: remove,
     update: update,
-    doLogin: doLogin
+    doLogin: doLogin,
+    findAccount: findAccount,
+    findAccountById: findAccountById,
+    check: check
   }
 }
 

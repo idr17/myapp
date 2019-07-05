@@ -21,7 +21,8 @@ const userSchema = mongoose.Schema({
   balance: {
     type: Number,
     default: 0
-  }
+  },
+  createdAt: { type: Date, required: true, default: Date.now } 
 })
 
 userSchema.pre('save', function(next) {
@@ -53,7 +54,6 @@ userSchema.methods.generateToken = function(cb) {
   user.token = token
   user.save(function(err, user) {
     if (err) {
-      console.log('err save ', err)
       return cb(err)
     }
     cb(null, user)

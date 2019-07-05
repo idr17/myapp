@@ -4,6 +4,28 @@ const { User } = require('../models/user')
 const { auth } = require('../middleware/auth')
 const userController = require('../controller/user')
 
+router.get('/account', auth, (req, res) => {
+  userController.findAccount({}, function(err, users) {
+    if (err) return res.status(400).send(err)
+    res.status(200).send(users)
+  })
+})
+
+router.get('/account/:id', auth, (req, res) => {
+  userController.findAccountById({_id: req.params.id}, function(err, user) {
+    if (err) return res.status(400).send(err)
+    res.status(200).send(user)
+  })
+})
+
+// Check user login
+router.get('/check', auth, (req, res) => {
+  userController.check({token: req.cookies.auth}, function(err, user) {
+    if (err) return res.status(400).send(err)
+    res.status(200).send(user)
+  })
+})
+
 router.get('/', (req, res) => {
   userController.find({}, function(err, users) {
     if (err) return res.status(400).send(err)
@@ -66,7 +88,14 @@ router.post('/login', (req, res) => {
 
 // logout
 router.get('/logout/:id', auth, (req, res) => {
-  res.cookie('auth', '').send('Logout success')
+  userController.check({token: req.cookies.auth}, function(err, user) {
+    if (err) return res.status(400).send(err)
+    if (user._id == req.params.id) {
+        res.status(200).cookie('auth', '').send('logout successfully')
+    } else {
+      res.status(401).send('failed, logout only for current user')
+    }
+  })
 })
 
 module.exports = router
