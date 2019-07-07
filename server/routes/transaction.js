@@ -8,162 +8,154 @@ const userController = require('../controller/user')
 const historyController = require('../controller/history')
 const config = require('../config/properties')
 
-router.get('/', (req, res) => {
-  transactionController.find({}, function(err, trans) {
-    if (err) return res.status(400).send(err)
+router.get('/', async (req, res) => {
+  try {
+    let trans = await transactionController.find({})
     res.status(200).send(trans)
-  })
+  } catch(err) {
+    res.status(400).send(err)
+  }
 })
 
-router.get('/:id', (req, res) => {
-  transactionController.findById({_id: req.params.id}, function(err, trans) {
-    if (err) return res.status(400).send(err)
+router.get('/:id', async (req, res) => {
+  try {
+    let trans = await transactionController.findById({_id: req.params.id})
     res.status(200).send(trans)
-  })
+  } catch(err) {
+    res.status(400).send(err)
+  }
 })
 
-router.post('/', auth, (req, res) => {
+router.post('/', auth, async (req, res) => {
 
-  userController.findById({_id: req.body.to}, function(err, user) {
-    if (err) return res.status(400).send(err)
+  try {
 
-    userController.findById({_id: req.body.from}, function(err, userFrom) {
-      if (err) return res.status(400).send(err)
-      
-      let theBalance = 0
-      if (req.body.type === config.TRANSACTION_TYPE.DB) {
-        theBalance = user.balance
-      } else if (req.body.type === config.TRANSACTION_TYPE.TRANSFER) {
-        theBalance = userFrom.balance
+    // Type checking
+    if (req.body.type !== config.TRANSACTION_TYPE.DB && req.body.type !== config.TRANSACTION_TYPE.TRANSFER && req.body.type !== config.TRANSACTION_TYPE.CR) {
+      res.status(400).send('Invalid transaction type')
+    }
+    
+    let accountFrom = await userController.findAccountById({_id: req.body.from})
+
+    // Balance checking
+    if (accountFrom.balance > req.body.amount || req.body.type === config.TRANSACTION_TYPE.CR) {
+
+      // create transaction
+      const transaction = new Transaction({
+        type: req.body.type,
+        amount: req.body.amount,
+        fromAccId: req.body.from,
+        toAccId: req.body.to
+      })
+
+      let saved = await transactionController.save(transaction)
+
+      let updatedData = {
+        email: accountFrom.email,
+        // password: accountFrom.password,
+        balance: accountFrom.balance,
+        token: accountFrom.token
       }
 
-      if (user.balance > req.body.amount || req.body.type === config.TRANSACTION_TYPE.CR) {
-
-        const transaction = new Transaction({
-          type: req.body.type,
-          amount: req.body.amount,
-          fromAccId: req.body.from,
-          toAccId: req.body.to
+      // Update user and create history for each transaction
+      if (saved.type === config.TRANSACTION_TYPE.CR || saved.type === config.TRANSACTION_TYPE.DB) {
+        
+        if (saved.type === config.TRANSACTION_TYPE.CR) {
+          updatedData.balance += saved.amount
+        } else if (saved.type === config.TRANSACTION_TYPE.DB) {
+          updatedData.balance -= saved.amount
+        }
+  
+        await userController.update({_id: accountFrom._id}, updatedData)
+  
+        let history = new History({
+          transactionId: saved._id,
+          accId: req.body.from,
+          balance: updatedData.balance
         })
-    
-        transactionController.save(transaction, (err, saved) => {
-    
-          if (err) return res.status(400).send(err)
       
-          // update balance
-          let updatedData = {
-            email: user.email,
-            password: user.password,
-            balance: user.balance
-          }
-    
-          if (saved.type === config.TRANSACTION_TYPE.DB) {
-            updatedData.balance = updatedData.balance - saved.amount
-            userController.update({_id: user._id}, updatedData, (err, updated) => {
-              if (err) return res.status(400).send(err)
+        await historyController.save(history)
+        res.status(200).send('transaction successfully')
 
-              // inject here, add to history
-              let history = new History({
-                transactionId: saved._id,
-                accId: req.body.to,
-                balance: updatedData.balance
-              })
-            
-              historyController.save(history, (err, saved) => {
-                if (err) return res.status(400).send(err)
-                res.status(200).send('update success') 
-              })
+      } else if (saved.type === config.TRANSACTION_TYPE.TRANSFER) {
 
-            })
-          } else if (saved.type === config.TRANSACTION_TYPE.CR) {
-            updatedData.balance = updatedData.balance + saved.amount
-            userController.update({_id: user._id}, updatedData, (err, updated) => {
-              if (err) return res.status(400).send(err)
+        // The difference between TRANSFER and other transaction is,
+        // TRANSFER need to patch/update both sender and receiver balance
+        // and need to create history for both also
+        
+        let accountTo = await userController.findAccountById({_id: req.body.to})
+        
+        let userUpdatedData1 = {
+          email: accountFrom.email,
+          // password: accountFrom.password,
+          balance: accountFrom.balance - saved.amount,
+          token: accountFrom.token
+        }
+        
+        let userUpdatedData2 = {
+          email: accountTo.email,
+          // password: accountTo.password,
+          balance: accountTo.balance + saved.amount,
+          token: accountTo.token
+        }
 
-                // inject here, add to history
-                let history = new History({
-                  transactionId: saved._id,
-                  accId: req.body.to,
-                  balance: updatedData.balance
-                })
-              
-                historyController.save(history, (err, saved) => {
-                  if (err) return res.status(400).send(err)
-                  res.status(200).send('update success')
-                })
-
-            })
-          } else if (saved.type === config.TRANSACTION_TYPE.TRANSFER) {
-    
-            updatedData.balance = updatedData.balance + saved.amount
-            userController.update({_id: req.body.to}, updatedData, (err, updated) => {
-            if (err) return res.status(400).send(err)
-
-              // inject here, add to history
-              let historyCR = new History({
-                transactionId: saved._id,
-                accId: req.body.to,
-                balance: updatedData.balance
-              })
-            
-              historyController.save(historyCR, (err, saved) => {
-                if (err) return res.status(400).send(err)
-              })
-
-              // menambahkan ke transaction, history
-              
-              let transferFromUser = {
-                email: userFrom.email,
-                password: userFrom.password,
-                balance: userFrom.balance - saved.amount
-              }
-    
-              userController.update({_id: req.body.from}, transferFromUser, (err, updated) => {
-                if (err) return res.status(400).send(err)
-
-                let historyDB = new History({
-                  transactionId: saved._id,
-                  accId: req.body.from,
-                  balance: transferFromUser.balance
-                })
-              
-                historyController.save(historyDB, (err, saved) => {
-                  if (err) return res.status(400).send(err)
-                  res.status(200).send('update success')              
-                })
-
-              })
-            })
-    
-          } else return res.status(400).json({"message": "invalid transaction type"})
-    
+        let history1 = new History({
+          transactionId: saved._id,
+          accId: req.body.from,
+          balance: userUpdatedData1.balance
         })
-      } else {
-        return res.status(400).json({"message": "Lack of balance"}) 
+
+        let history2 = new History({
+          transactionId: saved._id,
+          accId: req.body.to,
+          balance: userUpdatedData2.balance
+        })
+
+        let userFromUpdated = userController.update({_id: accountFrom._id}, userUpdatedData1)
+        let userToUpdated = userController.update({_id: accountTo._id}, userUpdatedData2)
+        let createHistory1 = historyController.save(history1)
+        let createHistory2 = historyController.save(history2)
+        
+        await Promise.all([userFromUpdated, userToUpdated, createHistory1, createHistory2])
+        
+        res.status(200).send('transaction successfully')
+
       }
-    })
-  })
-})
+      
+    } else {
+      return res.status(400).send("failed, lack of money") 
+    }
 
-router.delete('/:id', auth, (req, res) => {
-  transactionController.remove({_id: req.params.id}, (err, deleted) => {
-    if (err) return res.status(400).send(err)
-    res.status(200).send('delete success')
-  })
-})
-
-router.put('/:id', auth, (req, res) => {
-  let updatedData = {
-    type: req.body.type,
-    amount: req.body.amount,
-    fromAccId: req.body.from,
-    toAccId: req.body.to
+  } catch(err) {
+    res.status(400).send(err)
   }
 
-  transactionController.update({_id: req.params.id}, updatedData, (err, updated) => {
-    if (err) return res.status(400).send(err)
-    res.status(200).send('update success')
-  })
+})
+
+router.delete('/:id', auth, async (req, res) => {
+  try{
+    let removed = await transactionController.remove({_id: req.params.id})
+    res.status(200).send(removed)
+  }
+  catch(err) {
+    res.status(400).send(err)
+  }
+})
+
+router.put('/:id', auth, async (req, res) => {
+  try {
+    let updatedData = {
+      type: req.body.type,
+      amount: req.body.amount,
+      fromAccId: req.body.from,
+      toAccId: req.body.to
+    }
+    await transactionController.update({_id: req.params.id}, updatedData)
+    res.status(200).send(removed)
+  }
+  catch(err) {
+    res.status(400).send(err)
+  }
 })
 
 module.exports = router

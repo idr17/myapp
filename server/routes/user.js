@@ -4,18 +4,22 @@ const { User } = require('../models/user')
 const { auth } = require('../middleware/auth')
 const userController = require('../controller/user')
 
-router.get('/account', auth, (req, res) => {
-  userController.findAccount({}, function(err, users) {
-    if (err) return res.status(400).send(err)
+router.get('/account', auth, async (req, res) => {
+  try {
+    let users = await userController.findAccount({})
     res.status(200).send(users)
-  })
+  } catch(err) {
+    res.status(400).send(err)
+  }
 })
 
-router.get('/account/:id', auth, (req, res) => {
-  userController.findAccountById({_id: req.params.id}, function(err, user) {
-    if (err) return res.status(400).send(err)
+router.get('/account/:id', auth, async (req, res) => {
+  try {
+    let user = await userController.findAccountById({_id: req.params.id})
     res.status(200).send(user)
-  })
+  } catch(err) {
+    res.status(400).send(err)
+  }
 })
 
 // Check user login
@@ -26,50 +30,59 @@ router.get('/check', auth, (req, res) => {
   })
 })
 
-router.get('/', (req, res) => {
-  userController.find({}, function(err, users) {
-    if (err) return res.status(400).send(err)
+router.get('/', async (req, res) => {
+  try {
+    let users = await userController.find({})
     res.status(200).send(users)
-  })
-})
-
-router.get('/:id', (req, res) => {
-  userController.findById({_id: req.params.id}, function(err, user) {
-    if (err) return res.status(400).send(err)
-    res.status(200).send(user)
-  })
-})
-
-router.post('/', (req, res) => {
-  const user = new User({
-    email: req.body.email,
-    password: req.body.password
-  })
-
-  userController.save(user, (err, saved) => {
-    if (err) return res.status(400).send(err)
-    res.status(200).send(saved)
-  })
-})
-
-router.delete('/:id', auth, (req, res) => {
-  userController.remove({_id: req.params.id}, (err, deleted) => {
-    if (err) return res.status(400).send(err)
-    res.status(200).send('delete success')
-  })
-})
-
-router.put('/:id', auth, (req, res) => {
-
-  let updatedData = {
-    email: req.body.email,
-    password: req.body.password
+  } catch(err) {
+    res.status(400).send(err)
   }
+})
 
-  userController.update({_id: req.params.id}, updatedData, (err, updated) => {
-    if (err) return res.status(400).send(err)
-    res.status(200).send('update success')
-  })
+router.get('/:id', async (req, res) => {
+  try { 
+    let user = await userController.findById({_id: req.params.id})
+    res.status(200).send(user)
+  } catch(err) {
+    res.status(400).send(err)
+  }
+})
+
+router.post('/', async (req, res) => {
+  try {
+    const user = new User({
+      email: req.body.email,
+      password: req.body.password
+    })
+  
+    let saved = await userController.save(user)
+    res.status(200).send(saved)
+  } catch(err) {
+    res.status(400).send(err)
+  }
+})
+
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    await userController.remove({_id: req.params.id})
+    res.status(200).send('delete success')
+  } catch(err) {
+    res.status(400).send(err)
+  }
+})
+
+router.patch('/:id', auth, async (req, res) => {
+  try {
+    let updatedData = {
+      email: req.body.email,
+      password: req.body.password
+    }
+  
+    await userController.update({_id: req.params.id}, updatedData)
+    res.status(200).send('update success (note: not allowed to change balance)')
+  } catch(err) {
+    res.status(400).send(err)
+  }
 })
 
 // login

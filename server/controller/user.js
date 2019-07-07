@@ -2,61 +2,72 @@ const { User } = require('../models/user')
 const bcrypt = require('bcrypt')
 const config = require('../config/properties')
 
-const defaultProject = { email: 1, balance: 1 , createdAt: 1}
+const defaultProject = { email: 1, balance: 1}
 
 function Controller() {
-  function find(query, cb) {
-    User.find(query, defaultProject, function(err, users) {
-      if (err) return cb(err)
-      cb(null, users)
-    })
+  async function find(query) {
+    try {
+      let users = await User.find(query, defaultProject)
+      return Promise.resolve(users)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function findById(query, cb) {
-    User.findOne(query, defaultProject, function(err, user) {
-      if (err) return cb(err)
-      cb(null, user)
-    })
+  async function findById(query) {
+    try {
+      let user = await User.findOne(query, defaultProject)
+      return Promise.resolve(user)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function findAccount(query, cb) {
-    User.find(query, function(err, users) {
-      if (err) return cb(err)
-      cb(null, users)
-    })
+  async function findAccount(query) {
+    try {
+      let users = await User.find(query)
+      return Promise.resolve(users)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function findAccountById(query, cb) {
-    User.findOne(query, function(err, user) {
-      if (err) return cb(err)
-      cb(null, user)
-    })
+  async function findAccountById(query) {
+    try {
+      let user = await User.findOne(query)
+      return Promise.resolve(user)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function save(user, cb) {
-    user.save(function(err, saved) {
-      if (err) return cb(err)
-      cb(null, saved)
-    })
+  async function save(user) {
+    try {
+      let userSaved = await user.save()
+      return Promise.resolve(userSaved)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function remove(user, cb) {
-    User.remove(user, function(err, deleted) {
-      if (err) return cb(err)
-      cb(null, deleted)
-    })
+  async function remove(user) {
+    try {
+      await User.remove(user)
+      return Promise.resolve()
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function update(userId, updatedData, cb) {
+  async function update(userId, updatedData) {
+    try {
+      if (updatedData.password) {
+        let hashPassword = updatedData.password
 
-    let hashPassword = updatedData.password
-
-    bcrypt.genSalt(config.BCRYPT_SALT_I, function(err, salt) {
-      if (err) return cb(err)
-      bcrypt.hash(hashPassword, salt, function(err, hash) {
-        if (err) return cb(err)
+        let salt = await bcrypt.genSalt(config.BCRYPT_SALT_I)
+        let hash = await bcrypt.hash(hashPassword, salt)
         updatedData.password = hash
-  
-        User.update(userId, {$set: updatedData}, function(err, updated) {
-          if (err) return cb(err)
-          cb(null, updated)
-        })
-      })
-    })
+      }
+
+      return User.update(userId, {$set: updatedData})
+
+    } catch(err) {
+      return new Error(err)
+    }
   }
   function doLogin(loginData, cb) {
     User.findOne({'email': loginData.email}, (err, user) => {

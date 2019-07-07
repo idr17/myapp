@@ -21,8 +21,7 @@ const userSchema = mongoose.Schema({
   balance: {
     type: Number,
     default: 0
-  },
-  createdAt: { type: Date, required: true, default: Date.now } 
+  }
 })
 
 userSchema.pre('save', function(next) {

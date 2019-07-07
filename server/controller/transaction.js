@@ -1,35 +1,43 @@
 const { Transaction } = require('../models/transaction')
 
 function Controller() {
-  function find(query, cb) {
-    Transaction.find(query, function(err, trans) {
-      if (err) return cb(err)
-      cb(null, trans)
-    })
+  async function find(query) {
+    try {
+      let trans = await Transaction.find(query)
+      return Promise.resolve(trans)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function findById(query, cb) {
-    Transaction.findOne(query, function(err, trans) {
-      if (err) return cb(err)
-      cb(null, trans)
-    })
+  async function findById(query, cb) {
+    try {
+      let trans = await Transaction.findOne(query)
+      return Promise.resolve(trans)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
-  function save(trans, cb) {
-    trans.save(function(err, saved) {
-      if (err) return cb(err)
-      cb(null, saved)
-    })
+  async function save(trans) {
+    try {
+      let transaction = await trans.save()
+      return Promise.resolve(transaction)
+    } catch(err) {
+      return Promise.reject(err)
+    }
   }
   function remove(trans, cb) {
-    Transaction.remove(trans, function(err, deleted) {
-      if (err) return cb(err)
-      cb(null, deleted)
-    })
+    return Promise.reject('forbidden action')
+    // Transaction.remove(trans, function(err, deleted) {
+    //   if (err) return cb(err)
+    //   cb(null, deleted)
+    // })
   }
   function update(transId, updatedData, cb) {
-    Transaction.update(transId, {$set: updatedData}, function(err, updated) {
-      if (err) return cb(err)
-      cb(null, updated)
-    })
+    return Promise.reject('forbidden action')
+    // Transaction.update(transId, {$set: updatedData}, function(err, updated) {
+    //   if (err) return cb(err)
+    //   cb(null, updated)
+    // })
   }
   return {
     find: find,
