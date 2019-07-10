@@ -151,7 +151,7 @@ router.put('/:id', auth, async (req, res) => {
       toAccId: req.body.to
     }
     await transactionController.update({_id: req.params.id}, updatedData)
-    res.status(200).send(removed)
+    res.status(200).send('update successfullly')
   }
   catch(err) {
     res.status(400).json({error: err})
