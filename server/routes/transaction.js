@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     let trans = await transactionController.find({})
     res.status(200).send(trans)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -22,7 +22,7 @@ router.get('/:id', async (req, res) => {
     let trans = await transactionController.findById({_id: req.params.id})
     res.status(200).send(trans)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -127,7 +127,7 @@ router.post('/', auth, async (req, res) => {
     }
 
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 
 })
@@ -138,7 +138,7 @@ router.delete('/:id', auth, async (req, res) => {
     res.status(200).send(removed)
   }
   catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -154,7 +154,7 @@ router.put('/:id', auth, async (req, res) => {
     res.status(200).send(removed)
   }
   catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 

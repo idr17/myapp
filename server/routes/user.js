@@ -9,7 +9,7 @@ router.get('/account', auth, async (req, res) => {
     let users = await userController.findAccount({})
     res.status(200).send(users)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -18,7 +18,7 @@ router.get('/account/:id', auth, async (req, res) => {
     let user = await userController.findAccountById({_id: req.params.id})
     res.status(200).send(user)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
     let users = await userController.find({})
     res.status(200).send(users)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -44,7 +44,7 @@ router.get('/:id', async (req, res) => {
     let user = await userController.findById({_id: req.params.id})
     res.status(200).send(user)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
     let saved = await userController.save(user)
     res.status(200).send(saved)
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -67,7 +67,7 @@ router.delete('/:id', auth, async (req, res) => {
     await userController.remove({_id: req.params.id})
     res.status(200).send('delete success')
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 
@@ -81,7 +81,7 @@ router.patch('/:id', auth, async (req, res) => {
     await userController.update({_id: req.params.id}, updatedData)
     res.status(200).send('update success (note: not allowed to change balance)')
   } catch(err) {
-    res.status(400).send(err)
+    res.status(400).json({error: err})
   }
 })
 

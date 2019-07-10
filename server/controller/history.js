@@ -1,4 +1,6 @@
 const { History } = require('../models/history')
+const userController = require('../controller/user')
+const moment = require('moment')
 
 function Controller() {
   async function find(query) {
@@ -9,10 +11,26 @@ function Controller() {
       return Promise.reject(err)
     }
   }
-  async function findById(query) {
+  async function findByAccId(params) {
     try {
-      let hist = await History.findOne(query)
-      return Promise.resolve(hist)
+      
+      if (!params.accountId) return Promise.reject('Invalid request')
+      
+      const current = new Date
+      let startDate = params.startDate ? moment(params.startDate, 'YYYY-MM-DD') : moment(current, 'YYYY-MM-DD')
+      let endDate = params.endDate ? moment(params.endDate, 'YYYY-MM-DD') : moment(current, 'YYYY-MM-DD')
+      let difference = moment.duration(endDate.diff(startDate)).asDays()
+      
+      if (difference < 0 || difference > 7) return Promise.reject('Invalid date range, Request must be less than or within a week')
+      
+      let hist = await History
+        .find({accId: params.accountId})
+        .populate('transactionId')
+
+      let userAccount = await userController.findById({_id: params.accountId})
+      
+      return Promise.resolve({user: userAccount, histories: hist})
+
     } catch(err) {
       return Promise.reject(err)
     }
@@ -41,7 +59,7 @@ function Controller() {
   }
   return {
     find: find,
-    findById: findById,
+    findByAccId: findByAccId,
     save: save,
     remove: remove,
     update: update
