@@ -32,7 +32,7 @@ router.post('/', auth, async (req, res) => {
 
     // Type checking
     if (req.body.type !== config.TRANSACTION_TYPE.DB && req.body.type !== config.TRANSACTION_TYPE.TRANSFER && req.body.type !== config.TRANSACTION_TYPE.CR) {
-      res.status(400).send('Invalid transaction type')
+      res.status(400).json({error: 'Invalid transaction type'})
     }
     
     let accountFrom = await userController.findAccountById({_id: req.body.from})
@@ -123,7 +123,7 @@ router.post('/', auth, async (req, res) => {
       }
       
     } else {
-      return res.status(400).send("failed, lack of money") 
+      return res.status(400).json({error: 'failed, lack of money'}) 
     }
 
   } catch(err) {

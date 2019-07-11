@@ -25,7 +25,7 @@ router.get('/account/:id', auth, async (req, res) => {
 // Check user login
 router.get('/check', auth, (req, res) => {
   userController.check({token: req.cookies.auth}, function(err, user) {
-    if (err) return res.status(400).send(err)
+    if (err) return res.status(400).json({error: err})
     res.status(200).send(user)
   })
 })
@@ -94,7 +94,7 @@ router.post('/login', (req, res) => {
   }
 
   userController.doLogin(loginData, (err, token) => {
-    if (err) return res.status(400).send(err)
+    if (err) return res.status(400).json({error: err})
     res.cookie('auth', token).send('Login success')
   })
 })
@@ -102,7 +102,7 @@ router.post('/login', (req, res) => {
 // logout
 router.get('/logout/:id', auth, (req, res) => {
   userController.check({token: req.cookies.auth}, function(err, user) {
-    if (err) return res.status(400).send(err)
+    if (err) return res.status(400).json({error: err})
     if (user._id == req.params.id) {
         res.status(200).cookie('auth', '').send('logout successfully')
     } else {
